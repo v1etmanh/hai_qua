@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
@@ -12,6 +12,10 @@ const HANGING_COUNTDOWN_MIN = 6;
 const HANGING_COUNTDOWN_MAX = 10;
 const ROW_RAIN_COUNTDOWN = 4;
 const ROW_RAIN_COOLDOWN = 4.5;
+const BASKET_COLS = 3;
+const BASKET_ROWS = 6;
+const BASKET_SIZE = BASKET_COLS * BASKET_ROWS;
+const COMBO_RAIN_COOLDOWN_MS = 3000;
 
 const PHASE_CONFIG = {
   1: { trees: 3, fruitsPerTree: 1, dropInterval: 10, fallMin: 6, fallMax: 7 },
@@ -294,7 +298,7 @@ function drawSprite(ctx, image, config, frame, x, y, width, height, flip = false
   ctx.restore();
 }
 
-function OrchardCanvas({ command, resetKey, onStatsChange, onHarvest }) {
+const OrchardCanvas = forwardRef(function OrchardCanvas({ command, resetKey, onStatsChange, onHarvest }, ref) {
   const canvasRef = useRef(null);
   const keysRef = useRef(new Set());
   const stateRef = useRef(makeInitialState());
@@ -405,8 +409,19 @@ function OrchardCanvas({ command, resetKey, onStatsChange, onHarvest }) {
     return () => cancelAnimationFrame(animationId);
   }, [fruitMeta, onHarvest, onStatsChange]);
 
+  useImperativeHandle(ref, () => ({
+    triggerNearestRowRain: () => {
+      const state = stateRef.current;
+      if (!state.isRunning) return false;
+      const rowIndex = nearestRowIndex(state);
+      triggerRowRain(state, rowIndex);
+      state.rowRain.pulse = 1;
+      return true;
+    },
+  }), []);
+
   return <canvas ref={canvasRef} width={WORLD.width} height={WORLD.height} className="orchard-canvas" />;
-}
+});
 
 function summarizeState(state) {
   return {
@@ -494,6 +509,23 @@ function triggerRowRain(state, rowIndex) {
       makeRainFruitDrop(state, treeIndex, anchorIndex, randomBetween(0, 0.6));
     }
   }
+}
+
+function nearestRowIndex(state) {
+  const lanAnhY = state.lanAnh.y;
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+
+  TREE_ROWS.forEach((treeIndexes, rowIndex) => {
+    const avgY = treeIndexes.reduce((sum, index) => sum + TREE_LAYOUT[index].y, 0) / treeIndexes.length;
+    const rowDistance = Math.abs(avgY - lanAnhY);
+    if (rowDistance < bestDistance) {
+      bestDistance = rowDistance;
+      bestIndex = rowIndex;
+    }
+  });
+
+  return bestIndex;
 }
 
 function updatePlayer(state, pressed, delta) {
@@ -941,12 +973,53 @@ function drawResult(ctx, state) {
   ctx.restore();
 }
 
+function findBasketMatches(grid) {
+  const matched = new Set();
+
+  // Hang ngang: vi BASKET_COLS = 3 nen 1 hang day du chinh la 3 o lien tiep.
+  for (let row = 0; row < BASKET_ROWS; row += 1) {
+    const base = row * BASKET_COLS;
+    let allSameType = true;
+    for (let col = 0; col < BASKET_COLS; col += 1) {
+      const cell = grid[base + col];
+      if (!cell || cell.popping || cell.type !== grid[base]?.type) {
+        allSameType = false;
+        break;
+      }
+    }
+    if (allSameType) {
+      for (let col = 0; col < BASKET_COLS; col += 1) matched.add(base + col);
+    }
+  }
+
+  // Cot doc: kiem tra 3 o lien tiep cung loai theo tung cot.
+  for (let col = 0; col < BASKET_COLS; col += 1) {
+    for (let row = 0; row <= BASKET_ROWS - 3; row += 1) {
+      const i0 = row * BASKET_COLS + col;
+      const i1 = i0 + BASKET_COLS;
+      const i2 = i0 + BASKET_COLS * 2;
+      const a = grid[i0];
+      const b = grid[i1];
+      const c = grid[i2];
+      if (a && b && c && !a.popping && !b.popping && !c.popping && a.type === b.type && b.type === c.type) {
+        matched.add(i0);
+        matched.add(i1);
+        matched.add(i2);
+      }
+    }
+  }
+
+  return matched;
+}
+
 function App() {
   const [stats, setStats] = useState(summarizeState(makeInitialState()));
   const [lastFruit, setLastFruit] = useState(null);
-  const [basketItems, setBasketItems] = useState([]);
+  const [basketGrid, setBasketGrid] = useState(() => Array(BASKET_SIZE).fill(null));
   const [command, setCommand] = useState(null);
   const [resetKey, setResetKey] = useState(0);
+  const canvasRef = useRef(null);
+  const lastComboRainRef = useRef(0);
 
   const handleStatsChange = useCallback((nextStats) => {
     setStats(nextStats);
@@ -954,40 +1027,52 @@ function App() {
 
   const handleHarvest = useCallback((fruit) => {
     setLastFruit(fruit);
-    setBasketItems((items) => [
-      ...items,
-      {
+    setBasketGrid((grid) => {
+      const newItem = {
         id: `${fruit.id}-${Date.now()}-${Math.random()}`,
         type: fruit.id,
         label: fruit.label,
         src: fruit.src,
         popping: false,
-      },
-    ].slice(-18));
+      };
+
+      const emptyIndexes = [];
+      grid.forEach((cell, index) => {
+        if (!cell) emptyIndexes.push(index);
+      });
+
+      if (emptyIndexes.length > 0) {
+        const targetIndex = emptyIndexes[Math.floor(Math.random() * emptyIndexes.length)];
+        const nextGrid = grid.slice();
+        nextGrid[targetIndex] = newItem;
+        return nextGrid;
+      }
+
+      // Ro day: day o cu nhat ra, don sang de nhuong cho qua moi.
+      return [...grid.slice(1), newItem];
+    });
   }, []);
 
   useEffect(() => {
-    const comboType = ASSETS.fruits
-      .map((fruit) => fruit.id)
-      .find((type) => basketItems.filter((item) => item.type === type && !item.popping).length >= 3);
+    const matched = findBasketMatches(basketGrid);
+    if (matched.size === 0) return;
 
-    if (!comboType) return;
-
-    const comboIds = basketItems
-      .filter((item) => item.type === comboType && !item.popping)
-      .slice(0, 3)
-      .map((item) => item.id);
-
-    setBasketItems((items) =>
-      items.map((item) => comboIds.includes(item.id) ? { ...item, popping: true } : item),
+    setBasketGrid((grid) =>
+      grid.map((cell, index) => (matched.has(index) && cell ? { ...cell, popping: true } : cell)),
     );
 
+    const now = Date.now();
+    if (now - lastComboRainRef.current >= COMBO_RAIN_COOLDOWN_MS) {
+      const fired = canvasRef.current?.triggerNearestRowRain();
+      if (fired) lastComboRainRef.current = now;
+    }
+
     const timer = window.setTimeout(() => {
-      setBasketItems((items) => items.filter((item) => !comboIds.includes(item.id)));
+      setBasketGrid((grid) => grid.map((cell, index) => (matched.has(index) ? null : cell)));
     }, 520);
 
     return () => window.clearTimeout(timer);
-  }, [basketItems]);
+  }, [basketGrid]);
 
   const trigger = (name) => {
     setCommand({ name, id: Date.now() });
@@ -1016,6 +1101,7 @@ function App() {
         </div>
 
         <OrchardCanvas
+          ref={canvasRef}
           command={command}
           resetKey={resetKey}
           onHarvest={handleHarvest}
@@ -1026,9 +1112,12 @@ function App() {
           <div className="basket-title">Gio qua</div>
           <div className="basket-bowl" aria-hidden="true" />
           <div className="basket-grid">
-            {basketItems.map((item) => (
-              <div key={item.id} className={`basket-item ${item.popping ? 'is-popping' : ''}`}>
-                <img src={item.src} alt={item.label} />
+            {basketGrid.map((item, index) => (
+              <div
+                key={item ? item.id : `slot-${index}`}
+                className={`basket-item ${item ? '' : 'is-empty'} ${item?.popping ? 'is-popping' : ''}`}
+              >
+                {item && <img src={item.src} alt={item.label} />}
               </div>
             ))}
           </div>
@@ -1036,7 +1125,7 @@ function App() {
 
         <div className="actions">
           <button type="button" onClick={() => {
-            setBasketItems([]);
+            setBasketGrid(Array(BASKET_SIZE).fill(null));
             setResetKey((value) => value + 1);
           }}>Reset</button>
         </div>

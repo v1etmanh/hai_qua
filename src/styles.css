@@ -195,6 +195,99 @@ button {
   font-weight: 900;
 }
 
+.basket {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  width: 132px;
+  display: grid;
+  gap: 8px;
+  padding: 12px 10px;
+  border: 1px solid rgba(224, 183, 99, 0.55);
+  border-radius: 10px;
+  background: rgba(41, 48, 31, 0.78);
+  box-shadow:
+    inset 0 0 0 1px rgba(16, 23, 12, 0.24),
+    0 14px 34px rgba(10, 12, 9, 0.4);
+  color: #fffbe0;
+  pointer-events: none;
+}
+
+.basket-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: rgba(255, 250, 214, 0.8);
+}
+
+.basket-bowl {
+  height: 24px;
+  border-radius: 50% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, #f4d47b, #c98a3d);
+  box-shadow:
+    inset 0 -6px 8px rgba(90, 52, 10, 0.35),
+    0 4px 8px rgba(10, 12, 9, 0.3);
+}
+
+.basket-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  max-height: 216px;
+  overflow: hidden;
+}
+
+.basket-item {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(20, 26, 15, 0.4);
+  border: 1px solid rgba(244, 232, 171, 0.22);
+  animation: basket-pop-in 0.22s ease;
+}
+
+.basket-item img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.basket-item.is-popping {
+  animation: basket-pop-out 0.5s ease forwards;
+}
+
+@keyframes basket-pop-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes basket-pop-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  55% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+}
+
 @media (max-width: 700px) {
   .app-shell {
     padding: 8px;
