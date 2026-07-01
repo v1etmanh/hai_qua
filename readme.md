@@ -10,7 +10,7 @@ Mini game React + HTML canvas. Player controls Lan Anh running around the orchar
 - Stand under/near a tree to use the catching pose.
 - Press `Q` near a tree to shake it and make fruit fall faster.
 - Fruits drop from trees over time. Catch falling fruit by colliding with Lan Anh.
-- Collect `30` fruits before the `420s` timer ends to win.
+- Collect `200` fruits before the `420s` timer ends to win.
 
 ## Phase Config
 

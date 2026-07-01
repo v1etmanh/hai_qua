@@ -1,0 +1,10 @@
+# PROJECT_LOG.md
+
+Nhat ky thay doi du an `hai_qua`. Format: [Thoi gian] - [Hanh dong] - [Tac dong] - [Ghi chu tuong lai].
+
+---
+
+- [2026-07-02] - Doc va rieve toan bo `src/main.jsx` (1158 dong) + `src/styles.css` (338 dong) qua desktop-commander, doi chieu voi mo ta "ro hoa qua dang do" - Phat hien tinh nang ro hoa qua (basket grid 3x6, random placement kieu Block Blast, `findBasketMatches` check hang/cot 3 o lien tiep, combo pop + `triggerNearestRowRain`, CSS `.basket*` day du) DA duoc implement san trong working tree (git diff: +143 main.jsx, +93 styles.css, chua commit). Da chay `npm run build` xac nhan khong loi. - Neu gap yeu cau "ro hoa qua chua co style" trong tuong lai, kiem tra git status/diff truoc, co the code da lam roi chi la chua commit.
+- [2026-07-02] - Sua `TARGET_FRUITS` tu 30 len 200 trong `src/main.jsx`; dong bo lai so lieu trong `readme.md` (muc "Collect X fruits") - Dieu kien thang game gio can hai 200 qua thay vi 30 trong cung `TOTAL_TIME = 420s`. - CANH BAO: chua kiem tra can bang do kho — voi `PHASE_CONFIG` hien tai (toi da 6 cay x 4 qua/dropInterval 6s o phase 7), can xac minh 420s co du thoi gian thuc te de hai 200 qua khong. Neu nguoi choi test thay khong kip, can tang `TOTAL_TIME` hoac tang `fruitsPerTree`/giam `dropInterval`.
+- [2026-07-02] - Sua `ROW_RAIN_COUNTDOWN = 4` (giu nguyen, la thoi gian hien canh bao "Mua qua N") va `ROW_RAIN_COOLDOWN` tu 4.5 len 16 trong `src/main.jsx` - Khoang cach giua 2 lan mua hoa qua TU DONG (khong phai do combo tu ro) tang tu ~8.5s len dung 20s (4s canh bao + 16s nghi). Mua hoa qua do combo tu ro (3 qua cung loai trong ro) van rieng biet, cooldown 3s (`COMBO_RAIN_COOLDOWN_MS`), khong bi anh huong. - Neu can doi lai ty le canh bao/nghi (vd 5s canh bao + 15s nghi) thi sua ca hai hang so, tong phai = thoi gian mong muon.
+- [2026-07-02] - Chay `npm run build` (vite) sau ca 2 thay doi tren - Build thanh cong, khong loi syntax, bundle JS/CSS xuat ra `dist/` binh thuong. - Thay doi con nam trong working tree, CHUA commit git. Can hoi nguoi dung truoc khi `git add`/`git commit`.

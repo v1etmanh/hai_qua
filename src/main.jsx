@@ -4,14 +4,17 @@ import './styles.css';
 
 const WORLD = { width: 1207, height: 820 };
 const TOTAL_TIME = 420;
-const TARGET_FRUITS = 30;
+const TARGET_FRUITS = 200;
 const CHARACTER_SCALE = 1.6;
 const JUMP_DISTANCE = 82;
 const FALL_TIME_SCALE = 0.45;
 const HANGING_COUNTDOWN_MIN = 6;
 const HANGING_COUNTDOWN_MAX = 10;
+// Canh bao "Mua qua" hien 4s truoc khi mua roi, cong voi thoi gian nghi
+// sau moi dot mua (khong tinh combo tu ro) de tong khoang cach giua 2 lan
+// mua tu dong = 20s dung yeu cau.
 const ROW_RAIN_COUNTDOWN = 4;
-const ROW_RAIN_COOLDOWN = 4.5;
+const ROW_RAIN_COOLDOWN = 16;
 const BASKET_COLS = 3;
 const BASKET_ROWS = 6;
 const BASKET_SIZE = BASKET_COLS * BASKET_ROWS;
